@@ -1,0 +1,93 @@
+---
+title: "Vietnam Hep C Prevalence"
+author: "Thanh Kim MD"
+date: "12/06/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse); library(ggplot2)
+```
+
+# Importing data set
+```{r}
+library(readr)
+hepc.prev <- read_table2("PolarisGroup-HepC-Prevalence.txt", 
+                                 na = c(".",".."))
+```
+
+# Data wrangling
+```{r}
+# Excluding % in vir_prev collum
+hepc.prev <- hepc.prev %>% mutate(vir_prev = substr(vir_prev,1,3))
+
+# Replace "·" with "."
+for (i in 1:nrow(hepc.prev)) {
+  if (grepl("·",substr(hepc.prev$vir_prev[i],2,2))) {
+  substr(hepc.prev$vir_prev[i],2,2) <- "."
+}
+}
+
+# Classify vir_prev and vir_pop from character to numeric
+class(hepc.prev$vir_prev) <- "numeric"
+class(hepc.prev$vir_pop) <- "numeric"
+
+# Ranking by prevalence
+prev.rank <- hepc.prev %>% 
+  select(1:2) %>% arrange(desc(vir_prev)) %>% 
+  mutate(vietnam = ifelse(country == "Vietnam","Red","White"), 
+         rank = 1 : nrow(hepc.prev))
+
+# Ranking by population
+pop.rank <- hepc.prev %>% 
+  select(1,4) %>% 
+  arrange(desc(vir_pop)) %>% 
+  mutate(vietnam = ifelse(country == "Vietnam","Red","White"), 
+         rank = 1 : nrow(hepc.prev))
+
+which(prev.rank$country == "China")
+```
+
+# Plotting
+```{r}
+prev <- ggplot(data = prev.rank[1:30,], 
+       aes(x=reorder(country,-vir_prev), 
+           y = vir_prev, 
+           fill = vietnam))+
+  geom_bar(stat="identity") + 
+  xlab("Country") + ylab("Viraemic Prevalence (%)") + 
+  labs(
+    title = "Top 30 Viraemic Prevalence by Country (among 122 country with available data)",
+    subtitle = "Source: Polaris Group") +
+  theme(axis.text.x = element_text(angle = 45), legend.position = "none") +
+  geom_text(aes(y = vir_prev, label = vir_prev), vjust = 1.5, colour = "black")
+```
+
+```{r}
+pop <- ggplot(data = pop.rank[1:30,], 
+       aes(x=reorder(country,-vir_pop), 
+           y = vir_pop, 
+           fill = vietnam))+
+  geom_bar(stat="identity") + 
+  xlab("Country") + ylab("Total Viraemic Infection (thousand cases)") + 
+  labs(
+    title = "Top 30 Viraemic Infection Cases by Country (among 122 country with available data)",
+    subtitle = "Source: Polaris Group") +
+  theme(axis.text.x = element_text(angle = 45), legend.position = "none") +
+  geom_text(aes(y = vir_pop, label = vir_pop), vjust = 1.5, colour = "black")
+```
+
+
+
+
+
+
+
+
+
+
+
